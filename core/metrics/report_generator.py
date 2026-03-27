@@ -77,25 +77,27 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
     else:
         logger.error("Time field not found")
         return
-    
+
     # ================================================================
-    # 時間戳計算（加8小時偏移讓X軸顯示UTC+8）
+    # 時間戳計算 - 統一使用 UTC 時間戳
     # ================================================================
-    # Lightweight Charts X軸永遠用UTC來定位，所以要在時間戳階段就加8小時
-    # 8小時 = 28800秒
+    # datetime 已包含 Asia/Taipei 時區，轉為 int64 時自動轉為 UTC 時間戳
+    # 不需要再加偏移，JS 端會以正確時區顯示
     if df['datetime'].dt.tz is not None:
-        df['timestamp'] = (df['datetime'].astype('int64') // 10**9) + 28800
+        # 有時區信息，直接轉為 UTC 時間戳
+        df['timestamp'] = df['datetime'].astype('int64') // 10**9
     else:
-        # 如果沒有時區標記，直接用原始值 + 8小時
-        df['timestamp'] = (df['datetime'].astype('int64') // 10**9) + 28800
-    
+        # 沒有時區標記，先指定為 Taiwan 時區再轉為 UTC 時間戳
+        df['datetime'] = pd.to_datetime(df['datetime']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC')
+        df['timestamp'] = df['datetime'].astype('int64') // 10**9
+
     # ================================================================
     # 第3步: K線數據 (OHLCV)
     # ================================================================
     ohlc_data = []
     volume_data = []
     record_to_ohlc_idx = {}  # 映射：record 索引 -> ohlc_data 索引
-    
+
     for record_idx, row in df.iterrows():
         try:
             timestamp = int(row['timestamp'])
@@ -1265,20 +1267,32 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
         
         // 時區系統
         let tzMode = 'taipei';
-        
+
         function formatTimestamp(ts, tz) {{
             const date = new Date(ts * 1000); // Unix timestamp 秒 → 毫秒
-            
+
             if (tz === 'taipei') {{
-                // 時間戳已經包含了8小時偏移，直接用UTC方法讀取就是UTC+8時間
-                const year = date.getUTCFullYear();
-                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                const day = String(date.getUTCDate()).padStart(2, '0');
-                const hour = String(date.getUTCHours()).padStart(2, '0');
-                const minute = String(date.getUTCMinutes()).padStart(2, '0');
-                const second = String(date.getUTCSeconds()).padStart(2, '0');
-                
-                return `${{year}}-${{month}}-${{day}} ${{hour}}:${{minute}}:${{second}}`;
+                // 使用 Intl.DateTimeFormat 正確轉換為 UTC+8 台灣時區
+                const formatter = new Intl.DateTimeFormat('zh-TW', {{
+                    timeZone: 'Asia/Taipei',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }});
+
+                const parts = formatter.formatToParts(date);
+                const dateObj = {{}};
+                parts.forEach(part => {{
+                    if (part.type !== 'literal') {{
+                        dateObj[part.type] = part.value;
+                    }}
+                }});
+
+                return `${{dateObj.year}}-${{dateObj.month}}-${{dateObj.day}} ${{dateObj.hour}}:${{dateObj.minute}}:${{dateObj.second}}`;
             }} else if (tz === 'utc') {{
                 const iso = date.toISOString();
                 return iso.split('T')[0] + ' ' + iso.split('T')[1].split('.')[0];
@@ -2211,11 +2225,15 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
                                 timeFormat: 'HH:mm',
                                 dateFormat: '',
                                 tickMarkFormatter: (timestamp) => {{
-                                    // 只顯示時間部分 HH:MM，不顯示日期
+                                    // 只顯示時間部分 HH:MM，顯示 UTC+8 時間
                                     const date = new Date(timestamp * 1000);
-                                    const hours = date.getUTCHours().toString().padStart(2, '0');
-                                    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-                                    return hours + ':' + minutes;
+                                    const formatter = new Intl.DateTimeFormat('zh-TW', {{
+                                        timeZone: 'Asia/Taipei',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        hour12: false
+                                    }});
+                                    return formatter.format(date);
                                 }}
                             }},
                             localization: {{
