@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回測配置 - 均線可視化設置</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: inline-block;
+        }
+
+        .strategy-selector {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .visualization-config {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .ma-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .ma-group-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .ma-group.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 2px solid #667eea;
+        }
+
+        .ma-group.active .ma-group-title {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .checkbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+            font-size: 1em;
+            flex: 1;
+        }
+
+        .period-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-left: 10px;
+            font-size: 0.9em;
+        }
+
+        .badge-enabled {
+            background: #28a745;
+        }
+
+        .badge-disabled {
+            background: #dc3545;
+            opacity: 0.6;
+        }
+
+        .param-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .param-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .param-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95em;
+        }
+
+        .param-value {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .param-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .param-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .param-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .status-indicator.enabled {
+            background: #28a745;
+        }
+
+        .status-indicator.disabled {
+            background: #dc3545;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-reset:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .info-panel {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #0c5aa0;
+        }
+
+        .info-panel strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .config-display {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        .config-display pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .visualization-config {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 回測配置面板</h1>
+            <p>根據策略類型自動配置均線可視化</p>
+        </div>
+
+        <div class="content">
+            <!-- 成功消息 -->
+            <div class="success-message" id="successMessage">
+                ✓ 配置已保存！
+            </div>
+
+            <!-- 策略選擇部分 -->
+            <div class="section">
+                <h2 class="section-title">🎯 策略選擇</h2>
+                
+                <div class="strategy-selector">
+                    <div class="info-panel">
+                        <strong>💡 提示</strong>
+                        選擇策略後，系統會自動預設相應的均線顯示配置。您也可以手動添加其他均線。
+                    </div>
+
+                    <div class="control-group">
+                        <label for="strategySelect">選擇交易策略</label>
+                        <select id="strategySelect" onchange="updateStrategyConfig()">
+                            <option value="ema_crossover">EMA 交叉策略 (推薦)</option>
+                            <option value="sma_breakout">SMA 突破策略</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 均線可視化配置 -->
+            <div class="section">
+                <h2 class="section-title">📈 均線策略參數配置</h2>
+                
+                <div class="visualization-config">
+                    <!-- EMA 交叉策略配置 -->
+                    <div class="ma-group" id="emaGroup">
+                        <div class="ma-group-title">
+                            <span class="status-indicator enabled"></span>
+                            EMA 交叉策略參數
+                        </div>
+                        <div class="info-panel" style="background-color: #e8f4f8; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>📊 策略說明</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">快速EMA從下方穿過慢速EMA時買進，從上方穿過時賣出</p>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label class="param-label">交叉短線周期 <span style="color: #e74c3c;">*</span></label>
+                                <input type="number" id="emaFastPeriod" class="param-input" placeholder="例如: 13" min="1" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                                <div class="param-hint">快速EMA周期（必填）</div>
+                            </div>
+                            <div>
+                                <label class="param-label">交叉長線周期 <span style="color: #e74c3c;">*</span></label>
+                                <input type="number" id="emaSlowPeriod" class="param-input" placeholder="例如: 39" min="1" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                                <div class="param-hint">慢速EMA周期（必填，需>短線）</div>
+                            </div>
+                            <div style="grid-column: 1 / 3;">
+                                <label class="param-label">生命線周期</label>
+                                <input type="number" id="emaLifePeriod" class="param-input" placeholder="例如: 200" min="1" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                                <div class="param-hint">EMA壽命周期（可選）</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SMA 突破策略配置 -->
+                    <div class="ma-group" id="smaGroup">
+                        <div class="ma-group-title">
+                            <span class="status-indicator disabled"></span>
+                            SMA 突破策略參數
+                        </div>
+                        <div class="info-panel" style="background-color: #e8f4f8; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>📊 策略說明</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">收盤價向上突破SMA時買進，向下跌破時賣出</p>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label class="param-label">突破均線周期 <span style="color: #e74c3c;">*</span></label>
+                                <input type="number" id="smaBreakoutPeriod" class="param-input" placeholder="例如: 25" min="1" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                                <div class="param-hint">主要SMA周期（必填）</div>
+                            </div>
+                            <div>
+                                <label class="param-label">中期均線周期</label>
+                                <input type="number" id="smaMiddlePeriod" class="param-input" placeholder="例如: 50" min="1" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                                <div class="param-hint">中期SMA周期（可選）</div>
+                            </div>
+                            <div style="grid-column: 1 / 3;">
+                                <label class="param-label">生命線周期</label>
+                                <input type="number" id="smaLifePeriod" class="param-input" placeholder="例如: 200" min="1" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                                <div class="param-hint">SMA壽命周期（可選）</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 賬戶配置 -->
+            <div class="section">
+                <h2 class="section-title">💰 賬戶配置</h2>
+                
+                <div class="param-grid">
+                    <div class="param-box">
+                        <label class="param-label">啓動資金 (USDT)</label>
+                        <input type="number" id="initialCash" class="param-input" placeholder="100000" step="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                        <div class="param-hint">初始賬戶現金</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">手續費率</label>
+                        <input type="number" id="feeRate" class="param-input" placeholder="0.0005" step="0.00001" onchange="updateConfigDisplay()">
+                        <div class="param-hint">交易手續費比例 (0.0005 = 0.05%)</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">稅費率</label>
+                        <input type="number" id="taxRate" class="param-input" placeholder="0" step="0.00001" onchange="updateConfigDisplay()">
+                        <div class="param-hint">交易稅費比例</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">槓桿倍數</label>
+                        <input type="number" id="leverage" class="param-input" placeholder="10" step="1" min="1" oninput="forceIntegerInput(this)" onchange="updateConfigDisplay()">
+                        <div class="param-hint">交易槓桿倍數</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">維持保證金率</label>
+                        <input type="number" id="maintMarginRate" class="param-input" placeholder="0.05" step="0.001" onchange="updateConfigDisplay()">
+                        <div class="param-hint">維持保證金要求 (0.05 = 5%)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 回測配置 -->
+            <div class="section">
+                <h2 class="section-title">📅 回測配置</h2>
+                
+                <div class="param-grid">
+                    <div class="param-box">
+                        <label class="param-label">開始時間</label>
+                        <input type="datetime-local" id="startTime" class="param-input" onchange="updateConfigDisplay()">
+                        <div class="param-hint">回測數據開始時間</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">結束時間</label>
+                        <input type="datetime-local" id="endTime" class="param-input" onchange="updateConfigDisplay()">
+                        <div class="param-hint">回測數據結束時間</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">時間字段</label>
+                        <select id="datetimeKey" class="param-input" onchange="updateConfigDisplay()">
+                            <option value="open_time">開盤時間 (open_time)</option>
+                            <option value="close_time">收盤時間 (close_time)</option>
+                        </select>
+                        <div class="param-hint">使用哪個時間字段</div>
+                    </div>
+
+                    <div class="param-box">
+                        <label class="param-label">價格字段</label>
+                        <select id="priceKey" class="param-input" onchange="updateConfigDisplay()">
+                            <option value="close_price">收盤價 (close_price)</option>
+                            <option value="open_price">開盤價 (open_price)</option>
+                            <option value="high_price">最高價 (high_price)</option>
+                            <option value="low_price">最低價 (low_price)</option>
+                        </select>
+                        <div class="param-hint">使用哪個價格字段</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <h2 class="section-title">⚙️ 當前配置</h2>
+                <div class="config-display">
+                    <pre id="configDisplay">{}</pre>
+                </div>
+            </div>
+
+            <!-- 操作按鈕 -->
+            <div class="button-group">
+                <button class="btn-primary" onclick="saveConfiguration()">💾 保存配置</button>
+                <button class="btn-reset" onclick="resetToDefaults()">↻ 重置爲策略默認值</button>
+                <button class="btn-secondary" onclick="viewConfigFile()">📄 查看配置文件</button>
+                <button class="btn-secondary" onclick="getDebugInfo()">🔍 查看調試信息</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 數據 ====================
+        const configData = {
+            strategy: 'ema_crossover',
+            // EMA 交叉策略參數
+            ema_fast_period: 13,
+            ema_slow_period: 39,
+            ema_life_period: 200,
+            // SMA 突破策略參數
+            sma_breakout_period: 25,
+            sma_middle_period: null,
+            sma_life_period: 200,
+            // 賬戶配置
+            account: {
+                initial_cash: 100000,
+                fee_rate: 0.0005,
+                tax_rate: 0,
+                leverage: 10,
+                maint_margin_rate: 0.05
+            },
+            // 回測配置
+            backtest: {
+                start_time: '2025-05-01T00:10:00',
+                end_time: '2025-05-30T00:00:00',
+                datetime_key: 'open_time',
+                price_key: 'close_price'
+            }
+        };
+
+        // ==================== 初始化 ====================
+        function initializeUI() {
+            renderStrategyExample();
+            loadParameterValues();
+            updateStrategyConfig();
+            updateConfigDisplay();
+        }
+
+        // ==================== 加載參數值 ====================
+        function loadParameterValues() {
+            // 加載EMA交叉策略參數
+            document.getElementById('emaFastPeriod').value = configData.ema_fast_period || '';
+            document.getElementById('emaSlowPeriod').value = configData.ema_slow_period || '';
+            document.getElementById('emaLifePeriod').value = configData.ema_life_period || '';
+
+            // 加載SMA突破策略參數
+            document.getElementById('smaBreakoutPeriod').value = configData.sma_breakout_period || '';
+            document.getElementById('smaMiddlePeriod').value = configData.sma_middle_period || '';
+            document.getElementById('smaLifePeriod').value = configData.sma_life_period || '';
+
+            // 加載賬戶參數
+            document.getElementById('initialCash').value = configData.account.initial_cash;
+            document.getElementById('feeRate').value = configData.account.fee_rate;
+            document.getElementById('taxRate').value = configData.account.tax_rate;
+            document.getElementById('leverage').value = configData.account.leverage;
+            document.getElementById('maintMarginRate').value = configData.account.maint_margin_rate;
+
+            // 加載回測參數 - 轉換時間格式爲 datetime-local 支持的格式
+            let startTime = configData.backtest.start_time;
+            let endTime = configData.backtest.end_time;
+            
+            // 將 "YYYY-MM-DD HH:MM:SS" 格式轉換爲 "YYYY-MM-DDTHH:MM:SS"
+            if (startTime && startTime.includes(' ')) {
+                startTime = startTime.replace(' ', 'T');
+            }
+            if (endTime && endTime.includes(' ')) {
+                endTime = endTime.replace(' ', 'T');
+            }
+            
+            // 確保包含秒數
+            if (startTime && startTime.match(/\d{2}:\d{2}$/) && !startTime.match(/\d{2}:\d{2}:\d{2}$/)) {
+                startTime += ':00';
+            }
+            if (endTime && endTime.match(/\d{2}:\d{2}$/) && !endTime.match(/\d{2}:\d{2}:\d{2}$/)) {
+                endTime += ':00';
+            }
+            
+            document.getElementById('startTime').value = startTime;
+            document.getElementById('endTime').value = endTime;
+            document.getElementById('datetimeKey').value = configData.backtest.datetime_key;
+            document.getElementById('priceKey').value = configData.backtest.price_key;
+        }
+
+        // ==================== 更新參數值 ====================
+        function updateParameterValues() {
+            // 更新EMA交叉策略參數
+            configData.ema_fast_period = parseInt(document.getElementById('emaFastPeriod').value) || null;
+            configData.ema_slow_period = parseInt(document.getElementById('emaSlowPeriod').value) || null;
+            configData.ema_life_period = parseInt(document.getElementById('emaLifePeriod').value) || null;
+
+            // 更新SMA突破策略參數
+            configData.sma_breakout_period = parseInt(document.getElementById('smaBreakoutPeriod').value) || null;
+            configData.sma_middle_period = parseInt(document.getElementById('smaMiddlePeriod').value) || null;
+            configData.sma_life_period = parseInt(document.getElementById('smaLifePeriod').value) || null;
+
+            // 更新賬戶參數
+            configData.account.initial_cash = parseFloat(document.getElementById('initialCash').value) || 100000;
+            configData.account.fee_rate = parseFloat(document.getElementById('feeRate').value) || 0.0005;
+            configData.account.tax_rate = parseFloat(document.getElementById('taxRate').value) || 0;
+            configData.account.leverage = parseFloat(document.getElementById('leverage').value) || 10;
+            configData.account.maint_margin_rate = parseFloat(document.getElementById('maintMarginRate').value) || 0.05;
+
+            // 更新回測參數
+            let startTime = document.getElementById('startTime').value || '2025-05-01T00:10:00';
+            let endTime = document.getElementById('endTime').value || '2025-05-30T00:00:00';
+            
+            // 確保時間格式完整（YYYY-MM-DDTHH:MM:SS）
+            if (startTime && startTime.match(/\d{2}:\d{2}$/) && !startTime.match(/\d{2}:\d{2}:\d{2}$/)) {
+                startTime += ':00';
+            }
+            if (endTime && endTime.match(/\d{2}:\d{2}$/) && !endTime.match(/\d{2}:\d{2}:\d{2}$/)) {
+                endTime += ':00';
+            }
+            
+            configData.backtest.start_time = startTime;
+            configData.backtest.end_time = endTime;
+            configData.backtest.datetime_key = document.getElementById('datetimeKey').value || 'open_time';
+            configData.backtest.price_key = document.getElementById('priceKey').value || 'close_price';
+        }
+
+        // ==================== 策略選擇更新 ====================
+        function updateStrategyConfig() {
+            const strategy = document.getElementById('strategySelect').value;
+            configData.strategy = strategy;
+
+            console.log('🔄 策略已改變:', strategy);
+
+            // 根據策略類型顯示/隱藏相應的輸入框
+            if (strategy === 'ema_crossover') {
+                document.getElementById('emaGroup').classList.add('active');
+                document.getElementById('smaGroup').classList.remove('active');
+                console.log('✅ 已切換爲 EMA 交叉策略');
+                console.log('   EMA短線:', configData.ema_fast_period);
+                console.log('   EMA長線:', configData.ema_slow_period);
+                console.log('   EMA生命線:', configData.ema_life_period);
+            } else if (strategy === 'sma_breakout') {
+                document.getElementById('emaGroup').classList.remove('active');
+                document.getElementById('smaGroup').classList.add('active');
+                console.log('✅ 已切換爲 SMA 突破策略');
+                console.log('   SMA突破線:', configData.sma_breakout_period);
+                console.log('   SMA中期線:', configData.sma_middle_period);
+                console.log('   SMA生命線:', configData.sma_life_period);
+            }
+
+            updateConfigDisplay();
+            showSuccessMessage(`✓ 已切換到 ${strategy === 'ema_crossover' ? 'EMA 交叉策略' : 'SMA 突破策略'}`);
+        }
+
+        // ==================== 強制整數輸入 ====================
+        function forceIntegerInput(element) {
+            const value = element.value;
+            if (value === '') return; // 允許空值
+            
+            const intValue = Math.floor(Math.abs(parseInt(value)));
+            if (intValue > 0) {
+                element.value = intValue;
+            } else {
+                element.value = '';
+            }
+        }
+
+        // ==================== 驗證參數輸入 ====================
+        function validateStrategyParams() {
+            const strategy = configData.strategy;
+            let errors = [];
+
+            if (strategy === 'ema_crossover') {
+                // 檢查快速周期
+                if (!configData.ema_fast_period) {
+                    errors.push('❌ 交叉短線周期（必填）');
+                } else if (configData.ema_fast_period <= 0) {
+                    errors.push('❌ 交叉短線周期必須是正整數');
+                }
+                
+                // 檢查慢速周期
+                if (!configData.ema_slow_period) {
+                    errors.push('❌ 交叉長線周期（必填）');
+                } else if (configData.ema_slow_period <= 0) {
+                    errors.push('❌ 交叉長線周期必須是正整數');
+                }
+                
+                // 檢查大小關係
+                if (configData.ema_fast_period && configData.ema_slow_period && 
+                    configData.ema_fast_period >= configData.ema_slow_period) {
+                    errors.push('❌ 交叉短線周期必須小於交叉長線周期');
+                }
+                
+                // 檢查生命線（如果填入必須是正整數）
+                if (configData.ema_life_period && configData.ema_life_period <= 0) {
+                    errors.push('❌ 生命線周期必須是正整數');
+                }
+                
+            } else if (strategy === 'sma_breakout') {
+                // 檢查突破均線
+                if (!configData.sma_breakout_period) {
+                    errors.push('❌ 突破均線周期（必填）');
+                } else if (configData.sma_breakout_period <= 0) {
+                    errors.push('❌ 突破均線周期必須是正整數');
+                }
+                
+                // 檢查中期均線（如果填入必須是正整數）
+                if (configData.sma_middle_period && configData.sma_middle_period <= 0) {
+                    errors.push('❌ 中期均線周期必須是正整數');
+                }
+                
+                // 檢查生命線（如果填入必須是正整數）
+                if (configData.sma_life_period && configData.sma_life_period <= 0) {
+                    errors.push('❌ 生命線周期必須是正整數');
+                }
+            }
+
+            return errors;
+        }
+
+        // ==================== 更新配置顯示 ====================
+        function updateConfigDisplay() {
+            updateParameterValues();
+            
+            // 轉換時間格式爲標準格式 YYYY-MM-DD HH:MM:SS
+            let backtest_display = {
+                start_time: configData.backtest.start_time.replace('T', ' '),
+                end_time: configData.backtest.end_time.replace('T', ' '),
+                datetime_key: configData.backtest.datetime_key,
+                price_key: configData.backtest.price_key
+            };
+            
+            // 根據策略構建不同的配置顯示
+            let visualization = {};
+            
+            if (configData.strategy === 'ema_crossover') {
+                visualization = {
+                    strategy_type: 'ema_crossover',
+                    fast_period: configData.ema_fast_period,
+                    slow_period: configData.ema_slow_period,
+                    life_period: configData.ema_life_period
+                };
+            } else if (configData.strategy === 'sma_breakout') {
+                visualization = {
+                    strategy_type: 'sma_breakout',
+                    sma_period: configData.sma_breakout_period,
+                    middle_period: configData.sma_middle_period || null,
+                    life_period: configData.sma_life_period
+                };
+            }
+            
+            const configObj = {
+                strategy: configData.strategy,
+                account: configData.account,
+                backtest: backtest_display,
+                strategy_params: visualization
+            };
+            
+            document.getElementById('configDisplay').textContent = 
+                JSON.stringify(configObj, null, 2);
+        }
+
+        // ==================== 保存配置 ====================
+        function saveConfiguration() {
+            console.log('💾 正在保存配置...');
+            updateParameterValues();
+
+            // 驗證必填參數
+            const errors = validateStrategyParams();
+            if (errors.length > 0) {
+                alert('❌ 參數驗證失敗：\n\n' + errors.join('\n'));
+                return;
+            }
+
+            debugConfig();
+            
+            // 根據策略類型構建不同的payload
+            let configPayload = {
+                strategy: configData.strategy,
+                account: configData.account,
+                backtest: {
+                    start_time: configData.backtest.start_time.replace('T', ' '),
+                    end_time: configData.backtest.end_time.replace('T', ' '),
+                    datetime_key: configData.backtest.datetime_key,
+                    price_key: configData.backtest.price_key
+                }
+            };
+
+            // 根據策略類型添加相應的參數
+            if (configData.strategy === 'ema_crossover') {
+                configPayload.strategy_params = {
+                    fast_period: configData.ema_fast_period,
+                    slow_period: configData.ema_slow_period,
+                    life_period: configData.ema_life_period
+                };
+                // 為了向後相容性，也添加enabled_ema_periods
+                configPayload.enabled_ema_periods = [
+                    configData.ema_fast_period,
+                    configData.ema_slow_period
+                ];
+                if (configData.ema_life_period) {
+                    configPayload.enabled_ema_periods.push(configData.ema_life_period);
+                }
+                configPayload.enabled_sma_periods = [];
+            } else if (configData.strategy === 'sma_breakout') {
+                configPayload.strategy_params = {
+                    sma_period: configData.sma_breakout_period,
+                    middle_period: configData.sma_middle_period,
+                    life_period: configData.sma_life_period
+                };
+                // 為了向後相容性，也添加enabled_sma_periods
+                configPayload.enabled_sma_periods = [configData.sma_breakout_period];
+                if (configData.sma_middle_period) {
+                    configPayload.enabled_sma_periods.push(configData.sma_middle_period);
+                }
+                if (configData.sma_life_period) {
+                    configPayload.enabled_sma_periods.push(configData.sma_life_period);
+                }
+                configPayload.enabled_ema_periods = [];
+            }
+
+            // 嘗試通過 Python 後端保存
+            fetch('/api/save-visualization-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(configPayload),
+                mode: 'cors'
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('後端 API 未啓動');
+                }
+            })
+            .then(data => {
+                console.log('✅ 配置已成功保存到 Python!');
+                console.log('保存的配置:', data);
+                showSuccessMessage('✅ 配置已保存！\n✓ 刷新此頁面查看確認');
+            })
+            .catch(error => {
+                console.log('⚠️  後端 API 未可用');
+                console.log('錯誤信息:', error.message);
+                showSuccessMessage('✓ 配置已本地更新\n⚠️  API 未響應\n請啓動: python visualization_api_server_v2.py');
+            });
+        }
+
+        // ==================== 顯示成功消息 ====================
+        function showSuccessMessage(message) {
+            const successMsg = document.getElementById('successMessage');
+            successMsg.textContent = message;
+            successMsg.classList.add('show');
+            
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+            }, 4000);
+        }
+
+        // ==================== 調試：打印當前配置到控制臺 ====================
+        function debugConfig() {
+            console.log('═══════════════════════════════════════════');
+            console.log('📊 當前配置信息:');
+            console.log('策略:', configData.strategy);
+            
+            if (configData.strategy === 'ema_crossover') {
+                console.log('EMA 交叉短線:', configData.ema_fast_period);
+                console.log('EMA 交叉長線:', configData.ema_slow_period);
+                console.log('EMA 生命線:', configData.ema_life_period);
+            } else if (configData.strategy === 'sma_breakout') {
+                console.log('SMA 突破均線:', configData.sma_breakout_period);
+                console.log('SMA 中期均線:', configData.sma_middle_period);
+                console.log('SMA 生命線:', configData.sma_life_period);
+            }
+            
+            console.log('賬戶配置:', configData.account);
+            console.log('回測配置:', configData.backtest);
+            console.log('═══════════════════════════════════════════');
+        }
+
+        // ==================== 重置爲策略默認值 ====================
+        function resetToDefaults() {
+            if (confirm('確定要重置所有參數爲默認值嗎？')) {
+                // 重置策略參數
+                configData.ema_fast_period = 13;
+                configData.ema_slow_period = 39;
+                configData.ema_life_period = 200;
+                configData.sma_breakout_period = 25;
+                configData.sma_middle_period = null;
+                configData.sma_life_period = 200;
+                
+                // 重置賬戶配置
+                configData.account = {
+                    initial_cash: 100000,
+                    fee_rate: 0.0005,
+                    tax_rate: 0,
+                    leverage: 10,
+                    maint_margin_rate: 0.05
+                };
+                
+                // 重置回測配置
+                configData.backtest = {
+                    start_time: '2025-05-01T00:10:00',
+                    end_time: '2025-05-30T00:00:00',
+                    datetime_key: 'open_time',
+                    price_key: 'close_price'
+                };
+                
+                loadParameterValues();
+                updateConfigDisplay();
+                showSuccessMessage('✅ 已重置爲默認值');
+            }
+        }
+
+        // ==================== 查看配置文件 ====================
+        function viewConfigFile() {
+            alert('配置文件位置: /configs/config.py\n\n請參考 get_visualization_config() 函數了解詳情');
+        }
+
+        // ==================== 運行回測 ====================
+
+
+        // ==================== 打開回測報告 ====================
+
+
+        // ==================== 獲取調試信息 ====================
+        function getDebugInfo() {
+            console.log('Getting current configuration...');
+            fetch('/api/get-visualization-config', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Current config:');
+                console.log('Config:', data.config);
+                
+                // Display to page
+                const debugMsg = document.getElementById('backtestMessage');
+                debugMsg.textContent = 'Current Configuration:\n' +
+                    'Enabled EMA periods: ' + JSON.stringify(data.config.enabled_ema_periods) + '\n' +
+                    'Enabled SMA periods: ' + JSON.stringify(data.config.enabled_sma_periods) + '\n' +
+                    '----\n' +
+                    'Initial cash: ' + data.config.account?.initial_cash + '\n' +
+                    'Start time: ' + data.config.backtest?.start_time;
+                debugMsg.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching config:', error.message);
+                document.getElementById('backtestMessage').textContent = 'Error: ' + error.message;
+                document.getElementById('backtestMessage').style.display = 'block';
+            });
+        }
+
+        // ==================== 策略示例 ====================
+        function renderStrategyExample() {
+            console.log(`
+╔══════════════════════════════════════════════════════════╗
+║          回測系統 - 均線策略參數配置系統               ║
+╠══════════════════════════════════════════════════════════╣
+║ 📊 EMA 交叉策略 (ema_crossover)                         ║
+║   • 交叉短線周期 (必填): 如 13                          ║
+║   • 交叉長線周期 (必填): 如 39                          ║
+║   • 生命線周期 (可選): 如 200                           ║
+╠══════════════════════════════════════════════════════════╣
+║ 📈 SMA 突破策略 (sma_breakout)                         ║
+║   • 突破均線周期 (必填): 如 25                          ║
+║   • 中期均線周期 (可選): 如 50                          ║
+║   • 生命線周期 (可選): 如 200                           ║
+╠══════════════════════════════════════════════════════════╣
+║ 💡 功能特點:                                           ║
+║   • 直接輸入數值，避免複選框誤操作                      ║
+║   • 根據策略自動切換相應的參數輸入框                    ║
+║   • 必填項驗證，確保配置完整正確                        ║
+║   • 實時 JSON 預覽配置內容                              ║
+║   • 支持保存配置到文件                                  ║
+╚══════════════════════════════════════════════════════════╝
+            `);
+        }
+
+        // ==================== 頁面加載 ====================
+        document.addEventListener('DOMContentLoaded', initializeUI);
+    </script>
+</body>
+</html>

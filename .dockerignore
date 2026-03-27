@@ -1,0 +1,26 @@
+# ==== 本地測試/基礎設定 ====
+.git/
+.gitignore
+.env
+*.env.example
+
+# ==== Python & 快取 ====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.pytest_cache/
+
+# ==== 虛擬環境 ====
+venv/
+.venv/
+env/
+
+# ==== IDE / 個人編輯器設定 ====
+.vscode/
+.idea/
+*.swp
+
+# ==== 專案相關 (避免把巨大的本地資料庫或無用檔案塞進 Image) ====
+*.log
+docker-compose*.yaml

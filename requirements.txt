@@ -1,0 +1,14 @@
+requests
+pandas
+beautifulsoup4
+numpy==1.26.4
+PyMySQL
+cryptography
+plotly
+Flask
+flask-cors
+pytz
+python-dotenv
+google-cloud-storage
+cloud-sql-python-connector
+gunicorn
