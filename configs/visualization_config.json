@@ -25,7 +25,7 @@
     "life_period": 200
   },
   "account": {
-    "initial_cash": 5000,
+    "initial_cash": 2222,
     "fee_rate": 0.0005,
     "tax_rate": 0,
     "leverage": 10,
