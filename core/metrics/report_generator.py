@@ -83,13 +83,33 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
     # ================================================================
     # datetime 已包含 Asia/Taipei 時區，轉為 int64 時自動轉為 UTC 時間戳
     # 不需要再加偏移，JS 端會以正確時區顯示
+    logger.info(f"📅 開始時間戳計算...")
+    logger.info(f"datetime 欄位時區: {df['datetime'].dt.tz}")
+    logger.info(f"前3筆 datetime: {df['datetime'].head(3).tolist()}")
+
     if df['datetime'].dt.tz is not None:
         # 有時區信息，直接轉為 UTC 時間戳
         df['timestamp'] = df['datetime'].astype('int64') // 10**9
+        logger.info(f"✅ 已將包含時區信息的 datetime 轉為 UTC 時間戳")
     else:
         # 沒有時區標記，先指定為 Taiwan 時區再轉為 UTC 時間戳
+        logger.warning(f"⚠️ datetime 無時區標記，假設為 Asia/Taipei")
         df['datetime'] = pd.to_datetime(df['datetime']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC')
         df['timestamp'] = df['datetime'].astype('int64') // 10**9
+        logger.info(f"✅ 已將無時區 datetime 本地化後轉為 UTC 時間戳")
+
+    # 檢查時間戳有效性
+    nan_count = df['timestamp'].isna().sum()
+    zero_count = (df['timestamp'] == 0).sum()
+    if nan_count > 0 or zero_count > 0:
+        logger.warning(f"⚠️ 時間戳中有 NaN: {nan_count}, 有 0 值: {zero_count}")
+
+    logger.info(f"時間戳統計:")
+    logger.info(f"  - 最小值: {df['timestamp'].min()}")
+    logger.info(f"  - 最大值: {df['timestamp'].max()}")
+    logger.info(f"  - 平均值: {df['timestamp'].mean()}")
+    logger.info(f"  - 樣本(前5筆): {df['timestamp'].head().tolist()}")
+
 
     # ================================================================
     # 第3步: K線數據 (OHLCV)
@@ -143,7 +163,7 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
             continue
         
         ohlc_data.append(ohlc_item)
-        
+
         # Volume
         if 'volume' in df.columns:
             vol = row['volume']
@@ -152,7 +172,7 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
                     'time': timestamp,
                     'value': float(vol)
                 })
-    
+
     # 調試輸出：檢查是否有數據
     if len(ohlc_data) == 0:
         logger.error("❌ OHLC 數據為空！K線無法生成")
@@ -160,6 +180,31 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
         if len(df) > 0:
             logger.error(f"DataFrame 欄位: {df.columns.tolist()}")
             logger.error(f"前2行數據:\n{df.head(2)}")
+    else:
+        logger.info(f"✅ OHLC 數據已生成: {len(ohlc_data)} 筆")
+        logger.debug(f"第一筆數據: {ohlc_data[0]}")
+        logger.debug(f"最後一筆數據: {ohlc_data[-1]}")
+
+        # 驗證所有數據
+        invalid_count = 0
+        for idx, item in enumerate(ohlc_data):
+            if item.get('time') is None or pd.isna(item.get('time')):
+                logger.error(f"❌ 第 {idx} 筆 OHLC 時間戳為 None: {item}")
+                invalid_count += 1
+            if any(v is None or (isinstance(v, float) and pd.isna(v)) for v in item.values()):
+                logger.error(f"❌ 第 {idx} 筆 OHLC 有 None 或 NaN 值: {item}")
+                invalid_count += 1
+
+        if invalid_count > 0:
+            logger.error(f"❌ 發現 {invalid_count} 筆無效 OHLC 數據")
+        else:
+            logger.info(f"✅ 所有 OHLC 數據都有效")
+
+        # 檢查時間戳範圍
+        timestamps = [item['time'] for item in ohlc_data]
+        logger.info(f"時間戳範圍: {min(timestamps)} - {max(timestamps)}")
+        logger.info(f"時間戳樣本: {timestamps[:5]}")
+
     
     # ================================================================
     # 第4步: SMA 均線
@@ -1172,6 +1217,28 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
         const ohlcRaw = {json.dumps(ohlc_data)};
         const volRaw = {json.dumps(volume_data)};
         let vizConfig = {json.dumps(viz_config)};
+
+        // ===== DEBUG 日志 =====
+        console.log('📊 DEBUG: 數據注入完成');
+        console.log('OHLC 數據筆數:', ohlcRaw.length);
+        console.log('OHLC 第一筆:', ohlcRaw[0]);
+        console.log('OHLC 最後一筆:', ohlcRaw[ohlcRaw.length - 1]);
+
+        // 檢查 OHLC 數據有效性
+        let invalidCount = 0;
+        for (let i = 0; i < Math.min(ohlcRaw.length, 10); i++) {{
+            const item = ohlcRaw[i];
+            if (!item || item.time === null || item.time === undefined) {{
+                console.error(`❌ OHLC[${i}] 時間戳為 null:`, item);
+                invalidCount++;
+            }}
+            if (!item || item.open === null || item.close === null) {{
+                console.error(`❌ OHLC[${i}] 價格為 null:`, item);
+                invalidCount++;
+            }}
+        }}
+        console.log(`✅ 前 10 筆檢查完成，無效筆數: ${invalidCount}`);
+
         
         // 根據欄位類型設置固定列寬 - 同時更新表頭和數據表格的colgroup
         function setFixedColumnWidths(displayFields) {{
