@@ -88,15 +88,15 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
     logger.info(f"前3筆 datetime: {df['datetime'].head(3).tolist()}")
 
     if df['datetime'].dt.tz is not None:
-        # 有時區信息，直接轉為 UTC 時間戳
-        df['timestamp'] = df['datetime'].astype('int64') // 10**9
-        logger.info(f"✅ 已將包含時區信息的 datetime 轉為 UTC 時間戳")
+        # 有時區信息，使用 .timestamp() 方法確保正確轉換為 Unix 秒級時間戳
+        df['timestamp'] = df['datetime'].apply(lambda x: int(x.timestamp()) if pd.notnull(x) else 0)
+        logger.info(f"✅ 已將包含時區信息的 datetime 轉為 UTC 時間戳（秒）")
     else:
         # 沒有時區標記，先指定為 Taiwan 時區再轉為 UTC 時間戳
         logger.warning(f"⚠️ datetime 無時區標記，假設為 Asia/Taipei")
         df['datetime'] = pd.to_datetime(df['datetime']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC')
-        df['timestamp'] = df['datetime'].astype('int64') // 10**9
-        logger.info(f"✅ 已將無時區 datetime 本地化後轉為 UTC 時間戳")
+        df['timestamp'] = df['datetime'].apply(lambda x: int(x.timestamp()) if pd.notnull(x) else 0)
+        logger.info(f"✅ 已將無時區 datetime 本地化後轉為 UTC 時間戳（秒）")
 
     # 檢查時間戳有效性
     nan_count = df['timestamp'].isna().sum()
