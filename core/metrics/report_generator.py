@@ -2625,25 +2625,40 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
         // 定義清空函數
         function clearChartsAndTrades() {{
             console.log('[ACTION] 清空圖表、交易記錄和性能指標...');
-            
+
             // 清空主圖表容器
             const chartContainers = ['price', 'volume', 'equity', 'performance-equity', 'trade-distribution-chart'];
             chartContainers.forEach(containerId => {{
                 const container = document.getElementById(containerId);
                 if (container) {{
                     container.innerHTML = '';
+
+                    // 在主圖表容器顯示提示訊息
+                    if (containerId === 'price') {{
+                        container.style.display = 'flex';
+                        container.style.alignItems = 'center';
+                        container.style.justifyContent = 'center';
+                        container.style.flexDirection = 'column';
+                        container.style.minHeight = '400px';
+                        container.innerHTML = `
+                            <div style="text-align: center; color: #a6acb8; font-size: 16px;">
+                                <div style="margin-bottom: 10px;">📝 請完成交易設定參數</div>
+                                <div style="font-size: 14px; color: #7a8ea3;">並按下回測按鈕</div>
+                            </div>
+                        `;
+                    }}
                 }}
             }});
-            
+
             // 清空交易記錄表格
             const tradesTable = document.getElementById('trades-tbody');
             if (tradesTable) {{
                 tradesTable.innerHTML = '<tr><td colspan="20" style="text-align: center; padding: 20px;">暫無交易記錄</td></tr>';
             }}
-            
+
             // 清空性能摘要
             const summaryFields = [
-                'summary-initial-equity', 'summary-final-equity', 'summary-net-profit', 
+                'summary-initial-equity', 'summary-final-equity', 'summary-net-profit',
                 'summary-return-rate', 'summary-total-fees', 'summary-fee-drag',
                 'summary-backtest-period', 'summary-backtest-duration', 'summary-total-trades',
                 'summary-win-loss-trades'
@@ -2654,7 +2669,7 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
                     elem.textContent = 'N/A';
                 }}
             }});
-            
+
             // 清空性能指標卡片
             const metricsFields = [
                 'metrics-max-dd', 'metrics-max-loss', 'metrics-trades', 'metrics-avg-profit',
@@ -2667,7 +2682,7 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
                     elem.textContent = '-';
                 }}
             }});
-            
+
             console.log('[OK] 已清空所有數據');
         }}
         
