@@ -1229,15 +1229,15 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
         for (let i = 0; i < Math.min(ohlcRaw.length, 10); i++) {{
             const item = ohlcRaw[i];
             if (!item || item.time === null || item.time === undefined) {{
-                console.error(`❌ OHLC[${i}] 時間戳為 null:`, item);
+                console.error(`❌ OHLC[` + i + `] 時間戳為 null:`, item);
                 invalidCount++;
             }}
             if (!item || item.open === null || item.close === null) {{
-                console.error(`❌ OHLC[${i}] 價格為 null:`, item);
+                console.error(`❌ OHLC[` + i + `] 價格為 null:`, item);
                 invalidCount++;
             }}
         }}
-        console.log(`✅ 前 10 筆檢查完成，無效筆數: ${invalidCount}`);
+        console.log(`✅ 前 10 筆檢查完成，無效筆數: ` + invalidCount);
 
         
         // 根據欄位類型設置固定列寬 - 同時更新表頭和數據表格的colgroup
