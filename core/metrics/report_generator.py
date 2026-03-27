@@ -100,21 +100,32 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
 
     for record_idx, row in df.iterrows():
         try:
+            # 檢查時間戳是否有效
+            if pd.isna(row['timestamp']):
+                continue
+
             timestamp = int(row['timestamp'])
+
+            # 檢查時間戳是否為有效的 Unix 時間戳（秒）
+            if timestamp <= 0 or timestamp > 10000000000:  # 大約到3286年
+                logger.warning(f"⚠️ 無效時間戳: {timestamp}")
+                continue
+
             o = float(row.get('open_price', 0))
             h = float(row.get('high_price', 0))
             l = float(row.get('low_price', 0))
             c = float(row.get('close_price', 0))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.warning(f"❌ 數據轉換失敗: {e}")
             continue
-        
-        # 檢查是否有 NaN 或無效值
-        if pd.isna([timestamp, o, h, l, c]).any():
+
+        # 檢查OHLC是否有 NaN 或無效值
+        if any(pd.isna(x) for x in [o, h, l, c]):
             continue
-            
+
         if all(x == 0 for x in [o, h, l, c]):
             continue
-        
+
         # 記錄當前 ohlc 對應的 record 索引
         record_to_ohlc_idx[record_idx] = len(ohlc_data)
         
@@ -164,18 +175,25 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
             col_name = f"sma{period}"
             if col_name not in df.columns:
                 continue
-            
+
             line_data = []
             for _, row in df.iterrows():
-                timestamp = int(row['timestamp'])
-                val = row[col_name]
-                
-                if pd.notnull(val):
-                    line_data.append({
-                        'time': timestamp,
-                        'value': round(float(val), 8)
-                    })
-            
+                # 檢查時間戳是否有效
+                if pd.isna(row['timestamp']):
+                    continue
+
+                try:
+                    timestamp = int(row['timestamp'])
+                    val = row[col_name]
+
+                    if pd.notnull(val):
+                        line_data.append({
+                            'time': timestamp,
+                            'value': round(float(val), 8)
+                        })
+                except (ValueError, TypeError):
+                    continue
+
             if line_data:
                 sma_lines.append({
                     'period': period,
@@ -197,18 +215,25 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
             col_name = f"ema{period}"
             if col_name not in df.columns:
                 continue
-            
+
             line_data = []
             for _, row in df.iterrows():
-                timestamp = int(row['timestamp'])
-                val = row[col_name]
-                
-                if pd.notnull(val):
-                    line_data.append({
-                        'time': timestamp,
-                        'value': round(float(val), 8)
-                    })
-            
+                # 檢查時間戳是否有效
+                if pd.isna(row['timestamp']):
+                    continue
+
+                try:
+                    timestamp = int(row['timestamp'])
+                    val = row[col_name]
+
+                    if pd.notnull(val):
+                        line_data.append({
+                            'time': timestamp,
+                            'value': round(float(val), 8)
+                        })
+                except (ValueError, TypeError):
+                    continue
+
             if line_data:
                 ema_lines.append({
                     'period': period,
@@ -220,18 +245,25 @@ def generate_report(result, filename="backtest_result.html", sma_periods=None, e
     # 第5步: 淨值曲線 (Equity)
     # ================================================================
     equity_data = []
-    
+
     for _, row in df.iterrows():
-        timestamp = int(row['timestamp'])
-        
-        if 'equity' in df.columns:
-            eq = row['equity']
-            if not pd.isna(eq):
-                equity_data.append({
-                    'time': timestamp,
-                    'value': round(float(eq), 2)
-                })
-    
+        # 檢查時間戳是否有效
+        if pd.isna(row['timestamp']):
+            continue
+
+        try:
+            timestamp = int(row['timestamp'])
+
+            if 'equity' in df.columns:
+                eq = row['equity']
+                if not pd.isna(eq):
+                    equity_data.append({
+                        'time': timestamp,
+                        'value': round(float(eq), 2)
+                    })
+        except (ValueError, TypeError):
+            continue
+
     # ================================================================
     # 第6步: 買賣信號標記
     # ================================================================
